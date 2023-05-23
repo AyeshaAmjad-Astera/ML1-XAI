@@ -26,7 +26,8 @@ class OneHotEncoderWrapper:
 
 class CustomEncoder:
     def __init__(self, feature_list, order_list):
-        self.ordinal_encoder = OrdinalEncoderWrapper(feature_list, order_list)
+        self.order_list = order_list
+        self.ordinal_encoder = OrdinalEncoderWrapper(feature_list, self.order_list)
         self.one_hot_encoder = OneHotEncoderWrapper(feature_list)
 
     def fit_transform(self, data):
