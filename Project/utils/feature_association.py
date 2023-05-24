@@ -21,5 +21,5 @@ class FeatureAssociation:
                     self.data['Not Significant'].append((col1, col2, p))
 
     def get_df(self, significant: bool = True):
-        print('Significant Associations' if significant else 'Not Significant Associations')
+        print('Significant Associations' if significant else 'Non Significant Associations')
         return pd.DataFrame(self.data['Significatnt' if significant else 'Not Significant'], columns=['Feature 1', 'Feature 2', 'p-value'])

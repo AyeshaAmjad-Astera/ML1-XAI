@@ -5,12 +5,12 @@ import missingno as msno
 
 sns.set_theme()
 
-def plot_count(df: pd.DataFrame, col: str):
-    ax = sns.countplot(x = df[col])
+def plot_count(df: pd.Series):
+    ax = sns.countplot(x = df)
     ax.bar_label(ax.containers[0])
-    plt.xlabel(col)
+    plt.xlabel(df.name)
     plt.ylabel('Frequency')
-    plt.title(f'Distribution of {col}')
+    plt.title(f'Distribution of {df.name}')
     plt.show()
 
 def plot_missing(df: pd.DataFrame):
