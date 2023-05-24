@@ -19,7 +19,7 @@ class DataLoader:
         self.target = self.data[self.target_column]
         
         self.train_data, self.test_data, train_target, test_target = train_test_split(
-            self.features, self.target, test_size=self.test_size, random_state=self.random_state
+            self.features, self.target, test_size=self.test_size, random_state=self.random_state, stratify=self.target
         )
         
         self.train_data[self.target_column] = train_target
@@ -35,7 +35,7 @@ class DataLoader:
         pass
     
     def get_train_data(self):
-        return self.train_data.drop(self.target_column, axis=1), self.data[self.target_column]
+        return self.train_data.drop(self.target_column, axis=1), self.train_data[self.target_column]
     
     def get_test_data(self):
-        return self.test_data.drop(self.target_column, axis=1), self.data[self.target_column]
+        return self.test_data.drop(self.target_column, axis=1), self.test_data[self.target_column]
