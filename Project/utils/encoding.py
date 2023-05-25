@@ -19,7 +19,7 @@ class OneHotEncoderWrapper:
         self.encoder = None
 
     def fit_transform(self, data):
-        self.encoder = OneHotEncoder(sparse=False).set_output(transform="pandas")
+        self.encoder = OneHotEncoder(sparse_output=False).set_output(transform="pandas")
         one_hot_encoded = self.encoder.fit_transform(data[self.one_hot_features])
         return one_hot_encoded
 
