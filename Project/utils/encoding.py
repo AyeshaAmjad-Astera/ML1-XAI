@@ -1,17 +1,6 @@
 import pandas as pd
-from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
-
-class OrdinalEncoderWrapper:
-    def __init__(self, ordinal_features, order_list):
-        self.ordinal_features = ordinal_features
-        self.encoder = None
-        self.order_list = order_list
-
-    def fit_transform(self, data):
-        self.encoder = OrdinalEncoder(categories=self.order_list).set_output(transform="pandas")
-        ordinal_encoded = self.encoder.fit_transform(data[self.ordinal_features])
-        return ordinal_encoded
-
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.base import BaseEstimator, TransformerMixin
 
 class OneHotEncoderWrapper:
     def __init__(self, one_hot_features):
@@ -24,13 +13,36 @@ class OneHotEncoderWrapper:
         return one_hot_encoded
 
 
-class CustomEncoder:
-    def __init__(self, feature_list, order_list):
-        self.order_list = order_list
-        self.ordinal_encoder = OrdinalEncoderWrapper(feature_list, self.order_list)
-        self.one_hot_encoder = OneHotEncoderWrapper(feature_list)
+class CatEncoderWrapper(BaseEstimator, TransformerMixin):
+    def __init__(self, columns, dtype):
+        self.columns = columns
+        self.dtype = dtype
 
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        X[self.columns] = X[self.columns].astype(self.dtype)
+        return X
+
+# class CatEncoderWrapper:
+#     def __init__(self, cat_features):
+#         self.cat_features = cat_features
+#     def fit_transform(self, data):
+#         for i in self.cat_features:
+#             data = data.apply(lambda x: x.astype('int64'))
+#         return data
+class Encoded_Features:
+    def __init__(self, object_features, cat_features):
+        self.object_features = object_features
+        self.cat_features = cat_features
+        self.one_hot_encoder = OneHotEncoderWrapper(self.object_features)
+        self.cat_encoder = CatEncoderWrapper(self.cat_features, 'int64')
     def fit_transform(self, data):
-        ordinal_encoded = self.ordinal_encoder.fit_transform(data)
-        one_hot_encoded = self.one_hot_encoder.fit_transform(data)
-        return ordinal_encoded, one_hot_encoded
+        df_ohe = data[self.object_features]
+        df_cat = data[self.cat_features]
+        df = data[data.columns.difference(self.object_features + self.cat_features)]
+        one_hot_encoded = self.one_hot_encoder.fit_transform(df_ohe)
+        cat_encoded = self.cat_encoder.fit_transform(df_cat)
+        return pd.concat([df, one_hot_encoded, cat_encoded], axis=1)
