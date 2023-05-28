@@ -1,39 +1,21 @@
-import gradio as gr
 import sys
+
+import gradio as gr
+
 sys.path.append("../")
-import pandas as pd
-from utils.data_utils import DataLoader
-import xgboost as xgb
-import optuna
-import lightgbm as lgb
 from importlib import reload
-from sklearn.metrics import roc_auc_score, accuracy_score
-import json
-import joblib
-from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.model_selection import cross_val_score, StratifiedKFold
-from sklearn.metrics import make_scorer
-from sklearn.ensemble import RandomForestClassifier
-from utils import visualization
-from utils.encoding import Encoded_Features, CatEncoderWrapper
-from catboost import CatBoostClassifier, Pool
-from sklearn.metrics import classification_report
-import seaborn as sns
-import matplotlib.pyplot as plt
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
-import missingno as msno
-import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc
-from sklearn.metrics import classification_report
-from sklearn.metrics import confusion_matrix
 from io import StringIO
-from interpret.blackbox import LimeTabular
-from interpret import show
+
+import joblib
 import lime
 import lime.lime_tabular
+import matplotlib.pyplot as plt
+import pandas as pd
+import shap
+from sklearn.metrics import (auc, roc_curve)
+from utils import visualization
+from utils.data_utils import DataLoader
+from utils.encoding import CatEncoderWrapper
 
 reload(visualization)
 reload(sys.modules['utils.data_utils'])
@@ -99,10 +81,30 @@ def explain_plot(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProd
                                                         discretize_continuous=False)
 
     exp = explainer.explain_instance(data_row=df.iloc[0], predict_fn=predict_fn, num_features=10)
-    fig = exp.as_pyplot_figure()
+    exp.as_pyplot_figure()
     return {data_tbl: pd.DataFrame(exp.as_list(), columns=['Feature', 'Weight']),
             plot: exp.as_pyplot_figure()}
 
+
+
+def data_shap(df):
+    encoder_model = joblib.load('../models/encoder_model.sav')
+    df = encoder_model.transform(df)
+    return df
+
+def predict_shap(df):
+    df = data_shap(df)
+    model = joblib.load('../models/CatBoost/model_cb3.sav')
+    return pd.DataFrame(model.predict(df), columns=['Prediction'])
+
+def shap_plot(df):
+    df = data_shap(df)
+    model = joblib.load('../models/CatBoost/model_cb3.sav')
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(df)
+    shap.summary_plot(shap_values,df, show=False)
+    plt.savefig('shap.png', bbox_inches='tight')
+    return 'shap.png'
 
 with gr.Blocks() as demo:
     with gr.Tab("LIME"):
@@ -130,17 +132,20 @@ with gr.Blocks() as demo:
     with gr.Tab("SHAPLEY"):
         with gr.Row():
             with gr.Column():
-                upload_btn = gr.UploadButton(label="Upload CSV", file_types=["csv"])
                 data = gr.Dataframe(headers=col_list,
                 datatype=["number", "str", "str", "number", "number", "number", "number", "number", "number", "number"],
-                row_count=5,
+                row_count=1,
                 col_count=(len(col_list), "fixed"), interactive=True)
+                upload_btn = gr.UploadButton(label="Upload CSV", file_types=["csv"])
             with gr.Column():
-                output = gr.Textbox(label="Prediction")
+                output = gr.DataFrame(headers=['Prediction'], datatype=['number'], row_count=1, col_count=(1, "fixed"), interactive=True)
+                plot_shap_val = gr.Image()
+                explain_btn = gr.Button("Explain")
                 submit_btn = gr.Button("Predict")
         upload_btn.upload(fn=process_csv_text, inputs=upload_btn, outputs=data, api_name="Upload CSV")
-        submit_btn.click(fn=predict, inputs= [credit_score, geography, gender, age, tenure, balance, num_products, credit_card, active_member, estimated_salary], outputs=output, api_name="Predict Churn Shapley")
-    
+        submit_btn.click(fn=predict_shap, inputs= data, outputs=output, api_name="Predict Churn Shapley")
+        explain_btn.click(fn=shap_plot, inputs=data, outputs=plot_shap_val, api_name="Explain Churn Shapley")
+        
     with gr.Tab("COUNTERFACTUAL"):
         with gr.Row():
             with gr.Column():
@@ -161,4 +166,4 @@ with gr.Blocks() as demo:
 
 
 
-demo.launch()
+demo.launch(share=True)
