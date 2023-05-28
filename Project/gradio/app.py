@@ -30,6 +30,10 @@ from sklearn.metrics import roc_curve, auc
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from io import StringIO
+from interpret.blackbox import LimeTabular
+from interpret import show
+import lime
+import lime.lime_tabular
 
 reload(visualization)
 reload(sys.modules['utils.data_utils'])
@@ -68,14 +72,36 @@ def process_csv_text(temp_file):
     print(df)
     return df
 
-def predict(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary):
-    model = joblib.load('../models/CatBoost/model_cb2.sav')
+def data_frame(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary):
+    encoder_model = joblib.load('../models/encoder_model.sav')
     credit_card_dict = {"Yes": 1, "No": 0}
     active_member_dict = {"Yes": 1, "No": 0}
     credit_card = credit_card_dict[HasCrCard]
     active_member = active_member_dict[IsActiveMember]
     list = [CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, credit_card, active_member, EstimatedSalary]
-    return model.predict(pd.DataFrame([list], columns=col_list)).tolist()[0]
+    df = encoder_model.transform(pd.DataFrame([list], columns=col_list))
+    return df
+
+def predict(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary):
+    df = data_frame(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary)    
+    model = joblib.load('../models/CatBoost/model_cb3.sav')
+    return model.predict(df)[0]
+
+def explain_plot(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary):
+    df = data_frame(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary)
+    model = joblib.load('../models/CatBoost/model_cb3.sav')
+    X_enc, y_enc = data_loader.get_data_enc()
+    predict_fn = lambda x: model.predict_proba(x).astype(float)
+    explainer = lime.lime_tabular.LimeTabularExplainer(class_names=model.classes_, 
+                                                       training_data=X_enc.values,
+                                                       feature_names=model.feature_names_,
+                                                        mode='classification',
+                                                        discretize_continuous=False)
+
+    exp = explainer.explain_instance(data_row=df.iloc[0], predict_fn=predict_fn, num_features=10)
+    fig = exp.as_pyplot_figure()
+    return {data_tbl: pd.DataFrame(exp.as_list(), columns=['Feature', 'Weight']),
+            plot: exp.as_pyplot_figure()}
 
 
 with gr.Blocks() as demo:
@@ -94,10 +120,11 @@ with gr.Blocks() as demo:
                 estimated_salary = gr.Number(label="Estimated Salary")
             with gr.Column():
                 output = gr.Textbox(label="Prediction")
+                data_tbl = gr.Dataframe(headers=['Feature', 'Weight'], datatype=['str', 'number'], row_count=10, col_count=(2, "fixed"), interactive=True)
                 plot = gr.Plot()
                 submit_btn = gr.Button("Predict")
-                plot_button = gr.Button("Plot")
-        plot_button.click(fn=plot_roc, outputs=plot)
+                exp_btn = gr.Button("Explain")
+        exp_btn.click(fn=explain_plot, inputs= [credit_score, geography, gender, age, tenure, balance, num_products, credit_card, active_member, estimated_salary], outputs=[data_tbl, plot], api_name="Explain Churn Lime")
         submit_btn.click(fn=predict, inputs= [credit_score, geography, gender, age, tenure, balance, num_products, credit_card, active_member, estimated_salary], outputs=output, api_name="Predict Churn Lime")
 
     with gr.Tab("SHAPLEY"):
