@@ -58,6 +58,7 @@ def plot_roc():
     return fig
 
 
+col_list = ['CreditScore', 'Geography', 'Gender', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary']
 
 def process_csv_text(temp_file):
     if isinstance(temp_file, str):
@@ -68,7 +69,6 @@ def process_csv_text(temp_file):
     return df
 
 def predict(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary):
-    col_list = ['CreditScore', 'Geography', 'Gender', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary']
     model = joblib.load('../models/CatBoost/model_cb2.sav')
     credit_card_dict = {"Yes": 1, "No": 0}
     active_member_dict = {"Yes": 1, "No": 0}
