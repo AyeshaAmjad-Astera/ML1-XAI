@@ -1,16 +1,20 @@
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.compose import ColumnTransformer
 
 class OneHotEncoderWrapper:
-    def __init__(self, one_hot_features):
-        self.one_hot_features = one_hot_features
-        self.encoder = None
+    def __init__(self, categorical_features):
+        self.categorical_features = categorical_features
+        self.column_transformer = None
 
-    def fit_transform(self, data):
-        self.encoder = OneHotEncoder(sparse_output=False).set_output(transform="pandas")
-        one_hot_encoded = self.encoder.fit_transform(data[self.one_hot_features])
-        return one_hot_encoded
+    def fit_transform(self, X):
+        self.column_transformer = ColumnTransformer(
+            transformers=[('encoder', OneHotEncoder(sparse_output=False), self.categorical_features)],
+            remainder='passthrough', verbose_feature_names_out=False
+        ).set_output(transform="pandas")
+        transformed_data = self.column_transformer.fit_transform(X)
+        return transformed_data
 
 
 class CatEncoderWrapper(BaseEstimator, TransformerMixin):
@@ -25,14 +29,6 @@ class CatEncoderWrapper(BaseEstimator, TransformerMixin):
         X = X.copy()
         X[self.columns] = X[self.columns].astype(self.dtype)
         return X
-
-# class CatEncoderWrapper:
-#     def __init__(self, cat_features):
-#         self.cat_features = cat_features
-#     def fit_transform(self, data):
-#         for i in self.cat_features:
-#             data = data.apply(lambda x: x.astype('int64'))
-#         return data
 class Encoded_Features:
     def __init__(self, object_features, cat_features):
         self.object_features = object_features
@@ -40,9 +36,6 @@ class Encoded_Features:
         self.one_hot_encoder = OneHotEncoderWrapper(self.object_features)
         self.cat_encoder = CatEncoderWrapper(self.cat_features, 'int64')
     def fit_transform(self, data):
-        df_ohe = data[self.object_features]
-        df_cat = data[self.cat_features]
-        df = data[data.columns.difference(self.object_features + self.cat_features)]
-        one_hot_encoded = self.one_hot_encoder.fit_transform(df_ohe)
-        cat_encoded = self.cat_encoder.fit_transform(df_cat)
-        return pd.concat([df, one_hot_encoded, cat_encoded], axis=1)
+        one_hot_encoded = self.one_hot_encoder.fit_transform(data)
+        cat_encoded = self.cat_encoder.transform(one_hot_encoded)
+        return cat_encoded
