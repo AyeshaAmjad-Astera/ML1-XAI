@@ -16,6 +16,7 @@ from sklearn.metrics import (auc, roc_curve)
 from utils import visualization
 from utils.data_utils import DataLoader
 from utils.encoding import CatEncoderWrapper
+import dice_ml
 
 reload(visualization)
 reload(sys.modules['utils.data_utils'])
@@ -45,6 +46,7 @@ def plot_roc():
 
 
 col_list = ['CreditScore', 'Geography', 'Gender', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary']
+col_list_enc = ['Geography_France', 'Geography_Germany', 'Geography_Spain', 'Gender_Female', 'Gender_Male', 'CreditScore', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary', 'Exited']
 
 def process_csv_text(temp_file):
     if isinstance(temp_file, str):
@@ -67,7 +69,8 @@ def data_frame(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProduc
 def predict(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary):
     df = data_frame(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary)    
     model = joblib.load('../models/CatBoost/model_cb3.sav')
-    return model.predict(df)[0]
+    pred = model.predict_proba(df)[0]
+    return {"Not Churned": float(pred[0]), "Churned": float(pred[1])} # model.predict(df)[0]
 
 def explain_plot(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary):
     df = data_frame(CreditScore, Geography, Gender, Age, Tenure, Balance, NumOfProducts, HasCrCard, IsActiveMember, EstimatedSalary)
@@ -106,6 +109,28 @@ def shap_plot(df):
     plt.savefig('shap.png', bbox_inches='tight')
     return 'shap.png'
 
+def cf_explain(credit_score, geography, gender, age, tenure, balance, num_products, credit_card, active_member, estimated_salary, check_box):
+    data = data_frame(credit_score, geography, gender, age, tenure, balance, num_products, credit_card, active_member, estimated_salary)
+    X_enc, y_enc = data_loader.get_data_enc()
+    model = joblib.load('../models/CatBoost/model_cb3.sav')
+    df = pd.concat([X_enc, y_enc], axis=1)
+    df['NumOfProducts'] = df['NumOfProducts'].astype(float)
+    df['IsActiveMember'] = df['IsActiveMember'].astype(float)
+
+    data_dice = dice_ml.Data(dataframe=df, continuous_features=['Age', 'NumOfProducts', 'EstimatedSalary', 'IsActiveMember'], outcome_name='Exited')
+    model_dice = dice_ml.Model(model=model, backend="sklearn")
+    explainer = dice_ml.Dice(data_dice, model_dice, method="random")
+
+    input_datapoint = data
+    features_to_vary= check_box
+
+    permitted_range={'Age':[20,30], 'EstimatedSalary':[116000, 119000]}
+
+    cf = explainer.generate_counterfactuals(input_datapoint, total_CFs=20, desired_class="opposite", permitted_range=permitted_range, features_to_vary=features_to_vary)
+    return cf.cf_examples_list[0].final_cfs_df
+
+
+
 with gr.Blocks() as demo:
     with gr.Tab("LIME"):
         with gr.Row():
@@ -121,7 +146,7 @@ with gr.Blocks() as demo:
                 active_member = gr.Radio(["Yes", "No"], label="Is Active Member")
                 estimated_salary = gr.Number(label="Estimated Salary")
             with gr.Column():
-                output = gr.Textbox(label="Prediction")
+                output = gr.Label("Churn Prediction")
                 data_tbl = gr.Dataframe(headers=['Feature', 'Weight'], datatype=['str', 'number'], row_count=10, col_count=(2, "fixed"), interactive=True)
                 plot = gr.Plot()
                 submit_btn = gr.Button("Predict")
@@ -160,10 +185,16 @@ with gr.Blocks() as demo:
                 active_member = gr.Radio(["Yes", "No"], label="Is Active Member")
                 estimated_salary = gr.Number(label="Estimated Salary")
             with gr.Column():
-                output = gr.Textbox(label="Prediction")
+                output = gr.Label("Churn Prediction")
                 submit_btn = gr.Button("Predict")
+                explain_cf = gr.Button("Explain")
+                with gr.Row():
+                    check_box =  gr.CheckboxGroup(['Age', 'NumOfProducts', 'EstimatedSalary', 'IsActiveMember'], label="Features to vary")
+                explain_df = gr.Dataframe(headers=col_list_enc,
+                                          datatype=["number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number", "number"],
+                                          row_count=1, col_count=(len(col_list_enc), "fixed"), interactive=True)
         submit_btn.click(fn=predict, inputs= [credit_score, geography, gender, age, tenure, balance, num_products, credit_card, active_member, estimated_salary], outputs=output, api_name="Predict Churn Counterfactual")
-
+        explain_cf.click(fn=cf_explain, inputs= [credit_score, geography, gender, age, tenure, balance, num_products, credit_card, active_member, estimated_salary, check_box], outputs=explain_df, api_name="Explain Churn Counterfactual")
 
 
 demo.launch(share=True)
