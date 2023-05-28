@@ -1,1 +1,9 @@
-{"bagging_temperature": 8.580570193138142, "border_count": 141, "colsample_bylevel": 0.9282987692994771, "depth": 6, "iterations": 196, "l2_leaf_reg": 1.7158044561827527e-07, "learning_rate": 0.09911492662583435, "random_strength": 0.381928851094573, "scale_pos_weight": 0.955002042974634, "subsample": 0.7030400245940563}
+{"bagging_temperature": 8.580570193138142, 
+"border_count": 141, 
+"colsample_bylevel": 0.9282987692994771, 
+"depth": 6, "iterations": 196, 
+"l2_leaf_reg": 1.7158044561827527e-07, 
+"learning_rate": 0.09911492662583435, 
+"random_strength": 0.381928851094573, 
+"scale_pos_weight": 0.955002042974634, 
+"subsample": 0.7030400245940563}

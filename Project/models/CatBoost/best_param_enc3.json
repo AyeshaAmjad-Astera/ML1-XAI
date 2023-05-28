@@ -1,0 +1,1 @@
+{"bagging_temperature": 9.600979441636884, "border_count": 127, "colsample_bylevel": 0.9350419125045962, "depth": 4, "iterations": 381, "l2_leaf_reg": 3.3370215083363754e-07, "learning_rate": 0.06014637915898248, "random_strength": 0.46890618138297385, "scale_pos_weight": 4.7163649766277045, "subsample": 0.6027197317299016}
