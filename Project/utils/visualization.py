@@ -23,13 +23,3 @@ def crosstab_plot(df: pd.DataFrame, col: str, target: str):
     for c in ax.containers:
         ax.bar_label(c, label_type='center')
     plt.show()
-
-def pie_plot(df: pd.DataFrame, col: str):
-    p = df[col].value_counts(normalize=True).mul(100).round(2)
-    ax = plt.pie(p, labels = ['Not Exited', 'Exited'], autopct='%1.2f%%')
-
-def dist_plot(df: pd.DataFrame, x: str, y: str):
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-
-    sns.histplot(df, x = x, kde = True, hue = y, ax = ax1)
-    sns.boxplot(df, y = x, x = y, orient='v', ax = ax2)
