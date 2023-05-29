@@ -170,7 +170,7 @@ with gr.Blocks() as demo:
             with gr.Column():
                 output = gr.Label("Churn Prediction")
                 submit_btn = gr.Button("Predict")
-                explain_cf = gr.Button("Explain")
+                explain_cf = gr.Button("Generate Counterfactual")
                 with gr.Row():
                     check_box =  gr.CheckboxGroup(['Age', 'NumOfProducts', 'EstimatedSalary', 'IsActiveMember'], label="Features to vary")
                 explain_df = gr.Dataframe(headers=col_list_enc,
