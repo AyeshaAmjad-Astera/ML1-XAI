@@ -12,7 +12,6 @@ import lime.lime_tabular
 import matplotlib.pyplot as plt
 import pandas as pd
 import shap
-from sklearn.metrics import (auc, roc_curve)
 from utils import visualization
 from utils.data_utils import DataLoader
 from utils.encoding import CatEncoderWrapper
@@ -28,31 +27,15 @@ X_test, y_test = data_loader.get_test_data()
 encoder = CatEncoderWrapper(columns=['NumOfProducts', 'HasCrCard', 'IsActiveMember', 'Tenure'], dtype='int64')
 X_test = encoder.transform(X_test)
 
-def plot_roc():
-    model = joblib.load('../models/CatBoost/model_cb2.sav')
-    y_pred_proba = model.predict_proba(X_test)[:, 1]
-    fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
-    roc_auc = auc(fpr, tpr)
-    fig = plt.figure()
-    plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(f'Receiver Operating Characteristic')
-    plt.legend(loc="lower right")
-    return fig
-
 
 col_list = ['CreditScore', 'Geography', 'Gender', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary']
 col_list_enc = ['Geography_France', 'Geography_Germany', 'Geography_Spain', 'Gender_Female', 'Gender_Male', 'CreditScore', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary', 'Exited']
 
 def process_csv_text(temp_file):
     if isinstance(temp_file, str):
-      df = pd.read_csv(StringIO(temp_file))
+        df = pd.read_csv(StringIO(temp_file))
     else:
-      df = pd.read_csv(temp_file.name)
+        df = pd.read_csv(temp_file.name)
     print(df)
     return df
 
@@ -187,7 +170,7 @@ with gr.Blocks() as demo:
             with gr.Column():
                 output = gr.Label("Churn Prediction")
                 submit_btn = gr.Button("Predict")
-                explain_cf = gr.Button("Explain")
+                explain_cf = gr.Button("Generate Counterfactual")
                 with gr.Row():
                     check_box =  gr.CheckboxGroup(['Age', 'NumOfProducts', 'EstimatedSalary', 'IsActiveMember'], label="Features to vary")
                 explain_df = gr.Dataframe(headers=col_list_enc,
