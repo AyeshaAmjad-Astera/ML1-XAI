@@ -12,6 +12,7 @@ import lime.lime_tabular
 import matplotlib.pyplot as plt
 import pandas as pd
 import shap
+from sklearn.metrics import (auc, roc_curve)
 from utils import visualization
 from utils.data_utils import DataLoader
 from utils.encoding import CatEncoderWrapper
@@ -22,7 +23,7 @@ reload(sys.modules['utils.data_utils'])
 reload(sys.modules['utils.encoding'])
 
 data_loader = DataLoader(file_path='../data/raw/Churn_Modelling.xls' , target_column='Exited', test_size=0.2, random_state=42, clean_data=True)
-
+model = joblib.load('../models/CatBoost/model_cb3.sav')
 X_test, y_test = data_loader.get_test_data()
 encoder = CatEncoderWrapper(columns=['NumOfProducts', 'HasCrCard', 'IsActiveMember', 'Tenure'], dtype='int64')
 X_test = encoder.transform(X_test)
@@ -33,9 +34,9 @@ col_list_enc = ['Geography_France', 'Geography_Germany', 'Geography_Spain', 'Gen
 
 def process_csv_text(temp_file):
     if isinstance(temp_file, str):
-        df = pd.read_csv(StringIO(temp_file))
+      df = pd.read_csv(StringIO(temp_file))
     else:
-        df = pd.read_csv(temp_file.name)
+      df = pd.read_csv(temp_file.name)
     print(df)
     return df
 
